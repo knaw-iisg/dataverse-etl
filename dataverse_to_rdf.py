@@ -19,15 +19,6 @@ Uses the standard Dataverse REST API (Search API + native dataset API,
 see https://guides.dataverse.org/en/6.2/api/) with the API key sent as
 X-Dataverse-key. Nothing more than that: no browser, no scraping.
 
-Note: dataverse.nl currently sits behind an Anubis bot-check at the
-reverse-proxy layer, which returns an HTML "Access Denied" page for
-scripted requests to *any* URL, /api/ included, even with a valid API
-key -- this is in front of Dataverse's own auth, not part of it. This
-script does not attempt to work around that; if you hit it, this is
-expected until dataverse.nl/DANS allowlists this harvester (ask them,
-mentioning the endpoints above and that this is read-only, low-volume,
-scheduled metadata access with a valid API token).
-
 Author affiliations are resolved to a canonical ROR (Research Organization
 Registry) organization node wherever possible -- a direct ROR URI in the
 field, a hand-curated alias for KNAW-HuC's own constituent institutes, or
