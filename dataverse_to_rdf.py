@@ -80,6 +80,9 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "data" / "derived" / "knaw-huc"
 PUBLISHER_IRI = URIRef("https://huc.knaw.nl/")
 PUBLISHER_NAME = "KNAW Humanities Cluster"
 
+IISG_ID_BASE = "https://iisg.amsterdam/id/dataset/"
+IISG_NATIVE_VIEWER = URIRef("https://iisg.amsterdam/vocab/nativeViewer")
+
 CC_LICENSES = {
     "CC0-1.0": "https://creativecommons.org/publicdomain/zero/1.0/",
     "CC-BY-4.0": "https://creativecommons.org/licenses/by/4.0/",
@@ -210,7 +213,11 @@ def http_get_json(session, url, params=None, retries=3, backoff=5):
 # --- Dataverse harvesting -----------------------------------------------------
 
 def list_dataset_pids(session, alias, per_page=100, limit=None):
+    # The search API's pagination windows can overlap as the index shifts
+    # between requests, occasionally returning the same dataset on two
+    # pages -- dedupe defensively rather than re-processing it twice.
     pids = []
+    seen = set()
     start = 0
     while True:
         payload = http_get_json(session, f"{BASE_URL}/api/search", params={
@@ -218,10 +225,11 @@ def list_dataset_pids(session, alias, per_page=100, limit=None):
         })["data"]
         items = payload["items"]
         for it in items:
-            pids.append({
-                "pid": it["global_id"],
-                "dv_alias": it.get("identifier_of_dataverse"),
-            })
+            pid = it["global_id"]
+            if pid in seen:
+                continue
+            seen.add(pid)
+            pids.append({"pid": pid, "dv_alias": it.get("identifier_of_dataverse")})
             if limit and len(pids) >= limit:
                 return pids
         start += per_page
@@ -384,6 +392,12 @@ class GraphBuilder:
     def add_dataset(self, data, catalogs, top_catalog):
         pid = data["persistentUrl"]
         ds = URIRef(pid)
+
+        if data.get("protocol") == "doi" and data.get("authority") and data.get("identifier"):
+            doi_suffix = f"{data['authority']}{data.get('separator', '/')}{data['identifier']}"
+            iisg_id = URIRef(f"{IISG_ID_BASE}{doi_suffix}")
+            self.g.add((iisg_id, IISG_NATIVE_VIEWER, ds))
+
         lv = data["latestVersion"]
         blocks = lv["metadataBlocks"]
         citation = blocks.get("citation", {}).get("fields", [])
