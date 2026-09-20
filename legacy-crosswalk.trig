@@ -94,6 +94,9 @@
     <https://iisg.amsterdam/id/dataset/10.34894/49KG6B> owl:sameAs <https://iisg.amsterdam/id/dataset/10631> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/10631"^^xsd:anyURI .
 
+    <https://iisg.amsterdam/id/dataset/10.34894/4G2NJM> owl:sameAs <https://iisg.amsterdam/id/dataset/9483> ;
+        schema:identifier "https://iisg.amsterdam/id/dataset/9483"^^xsd:anyURI .
+
     <https://iisg.amsterdam/id/dataset/10.34894/4M3SAP> owl:sameAs <https://iisg.amsterdam/id/dataset/221> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/221"^^xsd:anyURI .
 
@@ -369,6 +372,9 @@
 
     <https://iisg.amsterdam/id/dataset/10.34894/EPURQH> owl:sameAs <https://iisg.amsterdam/id/dataset/173> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/173"^^xsd:anyURI .
+
+    <https://iisg.amsterdam/id/dataset/10.34894/EUALJ5> owl:sameAs <https://iisg.amsterdam/id/dataset/9723> ;
+        schema:identifier "https://iisg.amsterdam/id/dataset/9723"^^xsd:anyURI .
 
     <https://iisg.amsterdam/id/dataset/10.34894/EXI8IJ> owl:sameAs <https://iisg.amsterdam/id/dataset/3299> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/3299"^^xsd:anyURI .
@@ -847,6 +853,9 @@
     <https://iisg.amsterdam/id/dataset/10.34894/T8OUZZ> owl:sameAs <https://iisg.amsterdam/id/dataset/34242> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/34242"^^xsd:anyURI .
 
+    <https://iisg.amsterdam/id/dataset/10.34894/T9XUR8> owl:sameAs <https://iisg.amsterdam/id/dataset/34277> ;
+        schema:identifier "https://iisg.amsterdam/id/dataset/34277"^^xsd:anyURI .
+
     <https://iisg.amsterdam/id/dataset/10.34894/TBQIMW> owl:sameAs <https://iisg.amsterdam/id/dataset/152> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/152"^^xsd:anyURI .
 
@@ -945,6 +954,9 @@
 
     <https://iisg.amsterdam/id/dataset/10.34894/VJZ5Z9> owl:sameAs <https://iisg.amsterdam/id/dataset/10421> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/10421"^^xsd:anyURI .
+
+    <https://iisg.amsterdam/id/dataset/10.34894/VMDKIS> owl:sameAs <https://iisg.amsterdam/id/dataset/3466> ;
+        schema:identifier "https://iisg.amsterdam/id/dataset/3466"^^xsd:anyURI .
 
     <https://iisg.amsterdam/id/dataset/10.34894/VMZFV2> owl:sameAs <https://iisg.amsterdam/id/dataset/593> ;
         schema:identifier "https://iisg.amsterdam/id/dataset/593"^^xsd:anyURI .
@@ -3042,6 +3054,13 @@
             "https://hdl.handle.net/10622/4VOJYS"^^xsd:anyURI,
             "https://iisg.amsterdam/id/dataset/10.34894/KQ6QCO"^^xsd:anyURI .
 
+    <https://iisg.amsterdam/id/dataset/34277> a schema:Dataset ;
+        owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/T9XUR8> ;
+        ns1:nativeViewer <https://doi.org/10.34894/T9XUR8> ;
+        schema:identifier "https://doi.org/10.34894/T9XUR8"^^xsd:anyURI,
+            "https://hdl.handle.net/10622/BDZEUK"^^xsd:anyURI,
+            "https://iisg.amsterdam/id/dataset/10.34894/T9XUR8"^^xsd:anyURI .
+
     <https://iisg.amsterdam/id/dataset/34278> a schema:Dataset ;
         owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/RI0KGV> ;
         ns1:nativeViewer <https://doi.org/10.34894/RI0KGV> ;
@@ -3118,6 +3137,13 @@
         schema:identifier "https://doi.org/10.34894/JPJJ0M"^^xsd:anyURI,
             "https://hdl.handle.net/10622/ALNM2S"^^xsd:anyURI,
             "https://iisg.amsterdam/id/dataset/10.34894/JPJJ0M"^^xsd:anyURI .
+
+    <https://iisg.amsterdam/id/dataset/3466> a schema:Dataset ;
+        owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/VMDKIS> ;
+        ns1:nativeViewer <https://doi.org/10.34894/VMDKIS> ;
+        schema:identifier "https://doi.org/10.34894/VMDKIS"^^xsd:anyURI,
+            "https://hdl.handle.net/10622/MOT8C3"^^xsd:anyURI,
+            "https://iisg.amsterdam/id/dataset/10.34894/VMDKIS"^^xsd:anyURI .
 
     <https://iisg.amsterdam/id/dataset/34741> a schema:Dataset ;
         owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/X7N6II> ;
@@ -3560,6 +3586,13 @@
             "https://hdl.handle.net/10622/AI9BFA"^^xsd:anyURI,
             "https://iisg.amsterdam/id/dataset/10.34894/WAPJSV"^^xsd:anyURI .
 
+    <https://iisg.amsterdam/id/dataset/9483> a schema:Dataset ;
+        owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/4G2NJM> ;
+        ns1:nativeViewer <https://doi.org/10.34894/4G2NJM> ;
+        schema:identifier "https://doi.org/10.34894/4G2NJM"^^xsd:anyURI,
+            "https://hdl.handle.net/10622/URI8O2"^^xsd:anyURI,
+            "https://iisg.amsterdam/id/dataset/10.34894/4G2NJM"^^xsd:anyURI .
+
     <https://iisg.amsterdam/id/dataset/95> a schema:Dataset ;
         owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/VPQO6C> ;
         ns1:nativeViewer <https://doi.org/10.34894/VPQO6C> ;
@@ -3573,6 +3606,13 @@
         schema:identifier "https://doi.org/10.34894/MHS58A"^^xsd:anyURI,
             "https://hdl.handle.net/10622/LTLDIQ"^^xsd:anyURI,
             "https://iisg.amsterdam/id/dataset/10.34894/MHS58A"^^xsd:anyURI .
+
+    <https://iisg.amsterdam/id/dataset/9723> a schema:Dataset ;
+        owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/EUALJ5> ;
+        ns1:nativeViewer <https://doi.org/10.34894/EUALJ5> ;
+        schema:identifier "https://doi.org/10.34894/EUALJ5"^^xsd:anyURI,
+            "https://hdl.handle.net/10622/IEYIUX"^^xsd:anyURI,
+            "https://iisg.amsterdam/id/dataset/10.34894/EUALJ5"^^xsd:anyURI .
 
     <https://iisg.amsterdam/id/dataset/9737> a schema:Dataset ;
         owl:sameAs <https://iisg.amsterdam/id/dataset/10.34894/J8Z8WV> ;

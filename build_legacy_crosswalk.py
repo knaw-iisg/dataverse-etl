@@ -27,9 +27,12 @@ Output: legacy-crosswalk.trig, asserting for each resolved legacy dataset:
     <new-doi-based-id> owl:sameAs <legacy> .
 
 A handful of legacy handles point at the old instance's own domain
-(datasets.iisg.amsterdam), which no longer resolves in DNS -- those are
-printed as a manual-follow-up list rather than guessed at (e.g. by title
-matching), since that could misattribute a legacy ID to the wrong dataset.
+(datasets.iisg.amsterdam), which no longer resolves in DNS. Where those
+have since been manually confirmed (via description text and deposit
+dates, not title alone -- see MANUAL_RESOLUTIONS below), the DOI is
+supplied directly rather than guessed at automatically. Anything still
+unresolved is printed for manual follow-up and tracked at
+https://github.com/knaw-iisg/dataverse-etl/issues.
 """
 
 import argparse
@@ -47,6 +50,19 @@ from dataverse_to_rdf import IISG_ID_BASE, IISG_NATIVE_VIEWER
 
 IISG = Namespace("https://iisg.amsterdam/vocab/")
 CROSSWALK_GRAPH = URIRef("https://iisg.amsterdam/graph/dataverse-legacy-crosswalk")
+
+# Handles whose redirect target (datasets.iisg.amsterdam) no longer resolves
+# in DNS -- the old instance's own domain is dead, so these can't be found
+# automatically. Confirmed manually by cross-checking dsDescription text and
+# deposit dates against the live collection, not by title alone. Datasets
+# still unresolved are tracked at
+# https://github.com/knaw-iisg/dataverse-etl/issues.
+MANUAL_RESOLUTIONS = {
+    "3466": "10.34894/VMDKIS",    # Bolivia, 1970-2012
+    "9483": "10.34894/4G2NJM",    # nlgis-boundary-files with Amsterdam Code
+    "9723": "10.34894/EUALJ5",    # Ordinations of priests in the medieval diocese of Utrecht (1505-1518)
+    "34277": "10.34894/T9XUR8",   # Inwoneraantallen van Nederlandse steden ca. 1300-1800
+}
 
 HANDLE_PATTERN = re.compile(
     r'<https://iisg\.amsterdam/id/dataset/(\d+)> <https://iisg\.amsterdam/vocab/nativeViewer> "([^"]+)"'
@@ -93,6 +109,7 @@ def main():
     unresolved = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=15) as ex:
         for i, (legacy_id, handle_url, doi_suffix, note) in enumerate(ex.map(resolve_handle, pairs), 1):
+            doi_suffix = doi_suffix or MANUAL_RESOLUTIONS.get(legacy_id)
             if doi_suffix:
                 legacy = URIRef(f"{IISG_ID_BASE}{legacy_id}")
                 new = URIRef(f"{IISG_ID_BASE}{doi_suffix}")
