@@ -43,11 +43,15 @@ Known compliance gaps (see report.txt after a run):
     the right individual, so this isn't attempted.
   - schema:spatialCoverage is emitted as a plain-named Place, not linked
     to a GeoNames URI (Dataverse doesn't record one).
-  - This script produces the RDF dump; it doesn't itself serve
-    resolvable per-dataset RDF URIs (NDE's "publication level 1"). The
-    DOIs already resolve to the Dataverse HTML landing pages; serving
-    the dump through a SPARQL endpoint (e.g. QLever) would satisfy the
-    optional third publication level.
+  - Each dataset's identity is minted under https://iisg.amsterdam/id/dataset/
+    rather than the DOI -- IISG doesn't control dataverse.nl, so its own
+    namespace is the dataset's primary IRI here, with the DOI kept only
+    as the target of iisg:nativeViewer. This script itself only produces
+    the dump; resolving that IRI to RDF/HTML (NDE's "publication level 1")
+    is handled by loading the dump into IISG's existing Triply/DRUID
+    infrastructure (druid.datalegend.net, dataset IISG/iisg-kg), not by
+    this script. A SPARQL endpoint over the same dump would additionally
+    satisfy the optional third publication level.
 """
 
 import argparse
@@ -381,13 +385,23 @@ class GraphBuilder:
         return self._ensure_org(uri, name, lang, None)
 
     def add_dataset(self, data, catalogs, top_catalog):
+        # The DOI (Dataverse's own identifier) is kept only as the
+        # nativeViewer target and for human-facing report links -- IISG
+        # doesn't control dataverse.nl, so it isn't the dataset's identity
+        # in this graph. The iisg.amsterdam URI is: it's the RDF subject,
+        # and every sub-resource fragment (#file-, #place-, #creator-) is
+        # minted off it rather than off the DOI.
         pid = data["persistentUrl"]
-        ds = URIRef(pid)
-
-        if data.get("protocol") == "doi" and data.get("authority") and data.get("identifier"):
-            doi_suffix = f"{data['authority']}{data.get('separator', '/')}{data['identifier']}"
-            iisg_id = URIRef(f"{IISG_ID_BASE}{doi_suffix}")
-            self.g.add((iisg_id, IISG_NATIVE_VIEWER, ds))
+        if not (data.get("protocol") == "doi" and data.get("authority") and data.get("identifier")):
+            raise ValueError(f"non-DOI dataset, can't mint an IISG identifier: {pid}")
+        doi_suffix = f"{data['authority']}{data.get('separator', '/')}{data['identifier']}"
+        ds = URIRef(f"{IISG_ID_BASE}{doi_suffix}")
+        # nativeViewer is what the IISG site follows to link out to the record;
+        # schema:identifier is the semantically-correct place to just record
+        # the DOI as an identifier. Both point at the DOI -- redundant, but
+        # each is read by a different consumer.
+        self.g.add((ds, IISG_NATIVE_VIEWER, URIRef(pid)))
+        self.g.add((ds, SDO.identifier, URIRef(pid)))
 
         lv = data["latestVersion"]
         blocks = lv["metadataBlocks"]
@@ -460,7 +474,7 @@ class GraphBuilder:
         for i, c in enumerate(coverage):
             country = sub(c, "country")
             if country:
-                place = URIRef(f"{pid}#place-{i}")
+                place = URIRef(f"{ds}#place-{i}")
                 self.g.add((place, RDF.type, SDO.Place))
                 self.g.add((place, SDO.name, Literal(country, lang=lang)))
                 self.g.add((ds, SDO.spatialCoverage, place))
@@ -489,10 +503,10 @@ class GraphBuilder:
                 # way https://doi.org/10.34894/X0D9QQ's ISNI was.
                 self.report["malformed_identifier"].append(f"{pid}: {name} ({scheme} {ident!r})")
                 slug = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
-                person = URIRef(f"{pid}#creator-{slug}")
+                person = URIRef(f"{ds}#creator-{slug}")
             else:
                 slug = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
-                person = URIRef(f"{pid}#creator-{slug}")
+                person = URIRef(f"{ds}#creator-{slug}")
             self.g.add((person, RDF.type, SDO.Person))
             self.g.add((person, SDO.name, Literal(name, lang=lang)))
             affiliation = sub(a, "authorAffiliation")
@@ -512,7 +526,7 @@ class GraphBuilder:
                 continue
             restricted = f.get("restricted", False)
             any_public, any_restricted = any_public or not restricted, any_restricted or restricted
-            dl = URIRef(f"{pid}#file-{fid}")
+            dl = URIRef(f"{ds}#file-{fid}")
             self.g.add((dl, RDF.type, SDO.DataDownload))
             self.g.add((ds, SDO.distribution, dl))
             name = df.get("filename") or f.get("label")
