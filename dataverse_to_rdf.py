@@ -33,6 +33,17 @@ hierarchy (via ownerId chains, not just the immediate parent dataverse),
 and @lang tagging uses Dataverse's own per-dataset "Language" field when
 set, falling back to --lang otherwise.
 
+A dataset's "Contact" (Dataverse's datasetContact field) is emitted as
+schema:contactPoint -> schema:ContactPoint, with its affiliation resolved
+through the same ROR pipeline as authors. Dataverse's public API redacts
+the contact email for most datasets (it's only used internally for the
+"contact dataset owner" mail form), so schema:email is only present when
+the API actually returns one. Per-file schema:DataDownload also carries
+iisg:checksumAlgorithm/iisg:checksumValue when Dataverse reports a
+checksum -- kept as two properties rather than a single MD5-shaped one
+since the algorithm varies per installation/file (observed both MD5 and
+SHA-1 on this collection).
+
 Known compliance gaps (see report.txt after a run):
   - schema:license is only emitted when Dataverse exposes a machine
     license URI; datasets published under free-text "termsOfUse" only
@@ -63,7 +74,7 @@ import time
 from pathlib import Path
 
 import requests
-from rdflib import Graph, Literal, URIRef
+from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD, SDO
 
 BASE_URL = "https://dataverse.nl"
@@ -77,6 +88,12 @@ PUBLISHER_NAME = "KNAW Humanities Cluster"
 
 IISG_ID_BASE = "https://iisg.amsterdam/id/dataset/"
 IISG_NATIVE_VIEWER = URIRef("https://iisg.amsterdam/vocab/nativeViewer")
+IISG_CHECKSUM_ALGORITHM = URIRef("https://iisg.amsterdam/vocab/checksumAlgorithm")
+IISG_CHECKSUM_VALUE = URIRef("https://iisg.amsterdam/vocab/checksumValue")
+
+# DDI Discovery vocab, for the two standard Dataverse citation fields
+# (kindOfData, subtitle) that don't have a schema.org equivalent.
+DISCO = Namespace("http://rdf-vocabulary.ddialliance.org/discovery#")
 
 CC_LICENSES = {
     "CC0-1.0": "https://creativecommons.org/publicdomain/zero/1.0/",
@@ -429,6 +446,10 @@ class GraphBuilder:
         title = field(citation, "title") or data.get("identifier", pid)
         self.g.add((ds, SDO.name, Literal(title, lang=lang)))
 
+        subtitle = field(citation, "subtitle")
+        if subtitle:
+            self.g.add((ds, DISCO.subtitle, Literal(subtitle, lang=lang)))
+
         descriptions = field(citation, "dsDescription") or []
         desc_text = "\n\n".join(
             sub(d, "dsDescriptionValue") for d in descriptions if sub(d, "dsDescriptionValue")
@@ -462,6 +483,10 @@ class GraphBuilder:
                 text = sub(v, sub_field) if sub_field else v
                 if text:
                     self.g.add((ds, SDO.keywords, Literal(text)))
+
+        for kind in field(citation, "kindOfData") or []:
+            if kind:
+                self.g.add((ds, DISCO.kindOfData, Literal(kind)))
 
         publication = field(citation, "publication") or []
         for p in publication:
@@ -517,6 +542,25 @@ class GraphBuilder:
         if authors and not has_authority_id:
             self.report["no_creator_id"] += 1
 
+        contacts = field(citation, "datasetContact") or []
+        for c in contacts:
+            name = sub(c, "datasetContactName")
+            email = sub(c, "datasetContactEmail")
+            if not name and not email:
+                continue
+            slug = hashlib.sha1((name or email).encode("utf-8")).hexdigest()[:10]
+            contact = URIRef(f"{ds}#contact-{slug}")
+            self.g.add((contact, RDF.type, SDO.ContactPoint))
+            if name:
+                self.g.add((contact, SDO.name, Literal(name, lang=lang)))
+            if email:
+                self.g.add((contact, SDO.email, Literal(email)))
+            affiliation = sub(c, "datasetContactAffiliation")
+            org = self.org_node(affiliation, lang)
+            if org:
+                self.g.add((contact, SDO.affiliation, org))
+            self.g.add((ds, SDO.contactPoint, contact))
+
         files = lv.get("files", [])
         any_public, any_restricted = False, False
         for f in files:
@@ -536,6 +580,11 @@ class GraphBuilder:
                 self.g.add((dl, SDO.encodingFormat, Literal(df["contentType"])))
             if df.get("filesize") is not None:
                 self.g.add((dl, SDO.contentSize, Literal(str(df["filesize"]))))
+            checksum = df.get("checksum") or {}
+            if checksum.get("value"):
+                self.g.add((dl, IISG_CHECKSUM_VALUE, Literal(checksum["value"])))
+                if checksum.get("type"):
+                    self.g.add((dl, IISG_CHECKSUM_ALGORITHM, Literal(checksum["type"])))
             if not restricted:
                 self.g.add((dl, SDO.contentUrl, URIRef(f"{BASE_URL}/api/access/datafile/{fid}")))
             else:
