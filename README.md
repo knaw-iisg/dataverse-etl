@@ -1,73 +1,99 @@
 # KNAW-HuC Dataverse → NDE RDF
 
-Harvests every dataset in the [KNAW-HuC collection](https://dataverse.nl/dataverse/KNAW-HuC)
-on Dataverse.nl and writes it out as an RDF knowledge graph (`schema:Dataset` /
-`schema:DataCatalog`) following NDE's
-[Requirements for Datasets](https://docs.nde.nl/requirements-datasets/) profile.
+This project produces two related RDF graphs describing IISG/KNAW-HuC's
+Dataverse holdings, following NDE's
+[Requirements for Datasets](https://docs.nde.nl/requirements-datasets/)
+profile (`schema:Dataset` / `schema:DataCatalog`). Note: the *other* NDE
+spec, [SCHEMA-AP-NDE](https://docs.nde.nl/schema-profile/), covers heritage
+*objects* (CreativeWork/Person/Place), not dataset records — it doesn't
+apply here.
 
-Note: the *other* NDE spec, [SCHEMA-AP-NDE](https://docs.nde.nl/schema-profile/),
-covers heritage objects (CreativeWork/Person/Place), not dataset records, so it
-doesn't apply to this harvest — "Requirements for Datasets" is the correct spec
-for describing datasets themselves.
+## The two graphs, and how they relate
 
-Uses only the standard [Dataverse REST API](https://guides.dataverse.org/en/6.2/api/)
-(Search API + native dataset API) with an API key. No browser, no scraping.
+| | **1. Current collection** | **2. Legacy crosswalk** |
+|---|---|---|
+| Script | `dataverse_to_rdf.py` | `build_legacy_crosswalk.py` |
+| Output | `data/derived/knaw-huc/knaw-huc-dataverse.ttl` (+ `.jsonld`) | `legacy-crosswalk.trig` |
+| Source | live [KNAW-HuC collection](https://dataverse.nl/dataverse/KNAW-HuC) on dataverse.nl, via the REST API | a static `.trig` export of IISG's old, now-retired Dataverse instance |
+| Runs | weekly, on a schedule (fresh snapshot every time) | once, or again only if a new legacy export shows up |
+| Dataset IRIs | `https://iisg.amsterdam/id/dataset/{DOI-suffix}` | `https://iisg.amsterdam/id/dataset/{old-numeric-id}` |
 
-- **Organizations** are resolved to a canonical [ROR](https://ror.org) IRI
-  wherever possible (a direct ROR URI in the affiliation field, a
-  hand-curated alias for KNAW-HuC's own institutes, or a live ROR
-  affiliation-match), so `"IISG"` and `"International Institute of Social
-  History"` collapse onto the same node. What doesn't resolve is counted
-  in `report.txt` and tracked as data-quality issues at
-  [knaw-iisg/metadata-quality](https://github.com/knaw-iisg/metadata-quality).
-- **Collection hierarchy**: each dataset is linked to *every* ancestor
-  Dataverse collection it sits under (walking `ownerId` chains), not just
-  its immediate parent.
-- **Language tagging** uses Dataverse's own per-dataset "Language" field
-  when set, falling back to `--lang` (default `en`) otherwise.
+IISG used to run its own Dataverse instance, identified by sequential
+numeric IDs and `hdl.handle.net` handles. That instance is gone — the
+collection now lives on dataverse.nl under KNAW-HuC, identified by DOIs.
+Graph 2 bridges the two: for each legacy dataset, it resolves its old
+handle (live, via `hdl.handle.net`) to find the DOI it now redirects to,
+then asserts `owl:sameAs` between the legacy IRI and graph 1's DOI-based
+IRI for the same dataset — so anyone still holding a reference to the old
+IDs can follow it through to the current record. Graph 2 is static once
+built; it doesn't need re-running unless IISG produces a fresh export of
+the old instance.
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-export DATAVERSE_API_KEY=your-token
 ```
 
-The key is required to see restricted datasets' metadata; without it the
-harvest still runs but restricted datasets will be incomplete or skipped.
-
-## Run
+## Creating graph 1: the current collection
 
 ```bash
+export DATAVERSE_API_KEY=your-token   # optional, see below
 python dataverse_to_rdf.py
 ```
 
-Outputs (default `./data/derived/knaw-huc/`, gitignored):
-- `knaw-huc-dataverse.ttl` — Turtle
-- `knaw-huc-dataverse.jsonld` — JSON-LD
-- `report.txt` — counts of datasets processed and known compliance gaps
-  (missing machine-readable license, creators without an authority ID, etc.)
+The API key lets the harvest see restricted datasets' metadata; without
+it, restricted datasets will be incomplete or skipped. Also writes
+`report.txt` (counts processed, and known compliance gaps: missing
+licenses, creators without an authority ID, etc.).
 
-Useful flags: `--limit 10` for a quick test run, `--alias`/`--lang` to target
-a different collection or default language.
+Useful flags: `--limit 10` for a quick test run, `--alias`/`--lang` to
+target a different collection or default language.
 
-## Weekly cron
+To keep this graph current, schedule it weekly — each run re-harvests the
+whole collection and overwrites the output, rather than diffing:
 
 ```
 0 5 * * 1 cd /path/to/dataverse-etl && DATAVERSE_API_KEY=... /path/to/venv/bin/python dataverse_to_rdf.py >> harvest.log 2>&1
 ```
 
-Each run re-harvests the whole collection and overwrites the output files —
-it's a fresh snapshot, not an incremental update. This will only work once
-the allowlisting above is in place.
+## Creating graph 2: the legacy crosswalk
+
+Only needed once (or again if you get a new export of the old instance).
+Ask IISG for a `.trig(.gz)` export of the old
+`https://iisg.amsterdam/graph/dataverse` graph, place it under
+`data/source/` (gitignored), then:
+
+```bash
+python build_legacy_crosswalk.py --trig data/source/<export>.trig.gz
+```
+
+This makes ~369 live requests to `hdl.handle.net` to resolve each legacy
+handle to its current DOI, so it takes a few minutes. Datasets it can't
+resolve automatically are printed for manual follow-up — see
+`build_legacy_crosswalk.py`'s module docstring for the handful already
+resolved by hand.
 
 ## What this doesn't cover
 
-This produces the RDF dump ("publication level 2" in the NDE spec). It
-doesn't serve resolvable per-dataset RDF URIs itself (each dataset's DOI
-already resolves to its Dataverse HTML landing page). Loading the Turtle
-dump into a SPARQL endpoint would satisfy the spec's optional third
-publication level.
+Both scripts here only ever produce static files (`.ttl`/`.jsonld`/`.trig`)
+— a bulk dump you load somewhere else. That satisfies NDE's core
+requirement ("publishers *must* make their dataset descriptions available
+in RDF"), but not two further things the spec recommends (*should*, not
+*must*):
 
-See the module docstring in `dataverse_to_rdf.py` for the specific mapping
-decisions and known gaps (license, creator identifiers, spatial coverage).
+- **Resolvable per-dataset IRIs.** Every dataset here gets an identity
+  like `https://iisg.amsterdam/id/dataset/10.34894/NQOASN`, but that URI
+  isn't backed by a live web server in this project — visiting it
+  resolves to nothing. (Each dataset's *DOI* does resolve, but to the
+  Dataverse.nl landing page, not to this graph.)
+- **A live SPARQL endpoint** over the data, so it can be queried instead
+  of downloaded and loaded elsewhere first.
+
+Neither gap is filled by this repo — it's covered by IISG's existing
+Triply/DRUID infrastructure loading this dump, not by anything here.
+
+See the module docstrings in `dataverse_to_rdf.py` and
+`build_legacy_crosswalk.py` for the specific mapping decisions and known
+gaps (license, creator identifiers, spatial coverage, ROR/affiliation
+resolution, collection hierarchy).
