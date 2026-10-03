@@ -8,6 +8,15 @@ spec, [SCHEMA-AP-NDE](https://docs.nde.nl/schema-profile/), covers heritage
 *objects* (CreativeWork/Person/Place), not dataset records — it doesn't
 apply here.
 
+## Public instance
+
+This pipeline's output is merged with six others into a single public
+knowledge graph, browsable at **https://kb.zijdeman.nl** and queryable
+directly at **https://sparql.zijdeman.nl** (or via QLever's own query UI
+at **https://kg.zijdeman.nl**) -- see
+[iisg-kb-viewer](https://github.com/knaw-iisg/iisg-kb-viewer) and
+[triplestore](https://github.com/knaw-iisg/triplestore).
+
 ## The two graphs, and how they relate
 
 | | **1. Current collection** | **2. Legacy crosswalk** |
